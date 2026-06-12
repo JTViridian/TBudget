@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Trimarchi Budget Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a1a; --paper: #f7f4ef; --cream: #ede9e1;
+    --green: #2d6a4f; --green-light: #d8f3dc;
+    --red: #c0392b; --red-light: #fde8e8;
+    --amber: #c17f24; --amber-light: #fef3e2;
+    --blue: #1a4a7a; --blue-light: #dbeafe;
+    --purple: #5b21b6; --purple-light: #ede9fe;
+    --rule: #d0cab8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+  body { font-family: 'DM Sans', sans-serif; background: #1a1a1a; color: var(--ink); }
+
+  .header { background: var(--ink); color: var(--paper); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .header-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; }
+  .header-title em { font-style: italic; color: #a8d5b5; }
+  .header-date { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: #888; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+  .days-pill { font-family: 'DM Mono', monospace; font-size: 0.62rem; background: rgba(255,255,255,0.1); color: #aaa; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .reset-btn { font-family: 'DM Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; background: rgba(255,255,255,0.1); color: #aaa; border: 1px solid #444; border-radius: 3px; padding: 6px 14px; cursor: pointer; }
+
+  .main { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 56px); }
+
+  .left-panel { flex: 1; background: var(--paper); overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+  .right-panel { width: 300px; background: var(--cream); border-left: 1.5px solid var(--rule); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+  .right-inner { padding: 16px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+
+  .section-head { font-family: 'DM Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; color: #aaa; padding-bottom: 8px; border-bottom: 1px solid var(--rule); margin-bottom: 10px; }
+
+  .budget-row { background: #fff; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; border: 1.5px solid transparent; transition: border-color 0.15s; user-select: none; }
+  .budget-row:active { transform: scale(0.98); border-color: var(--rule); }
+  .row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .row-name { font-weight: 600; font-size: 0.9rem; }
+  .row-spent { font-family: 'DM Mono', monospace; font-size: 0.9rem; font-weight: 600; }
+  .row-budget { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: #aaa; }
+  .progress-track { height: 7px; background: var(--cream); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .row-status { font-family: 'DM Mono', monospace; font-size: 0.62rem; margin-top: 5px; }
+
+  .account-card { background: #fff; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border-left: 3px solid var(--rule); cursor: pointer; user-select: none; }
+  .account-card:active { opacity: 0.85; }
+  .account-card.everyday { border-left-color: var(--blue); }
+  .account-card.bills { border-left-color: var(--amber); }
+  .account-card.savings { border-left-color: var(--green); }
+  .account-card.car { border-left-color: var(--purple); }
+  .acc-row { display: flex; justify-content: space-between; align-items: center; }
+  .acc-name { font-size: 0.8rem; font-weight: 600; }
+  .acc-balance { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 600; }
+  .acc-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; text-align: right; }
+
+  .summary-block { background: var(--ink); color: var(--paper); border-radius: 8px; padding: 14px; margin-top: 4px; }
+  .sum-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .sum-row.total { border-top: 1px solid #333; padding-top: 8px; margin-top: 4px; margin-bottom: 0; }
+  .sum-label { font-family: 'DM Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #888; }
+  .sum-amount { font-family: 'DM Serif Display', serif; font-size: 1.1rem; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--paper); border-radius: 16px; padding: 24px; width: 400px; max-width: 92vw; max-height: 88vh; overflow-y: auto; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 4px; }
+  .modal-sub { font-size: 0.78rem; color: #888; margin-bottom: 16px; }
+  .input-wrap { position: relative; margin-bottom: 12px; }
+  .input-wrap span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-family: 'DM Mono', monospace; font-size: 1.1rem; color: #aaa; }
+  .amt-input { width: 100%; font-family: 'DM Mono', monospace; font-size: 1.5rem; font-weight: 500; border: 2px solid var(--rule); border-radius: 10px; padding: 12px 12px 12px 30px; background: #fff; outline: none; color: var(--ink); }
+  .amt-input:focus { border-color: var(--green); }
+  .note-input { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; border: 2px solid var(--rule); border-radius: 10px; padding: 10px 14px; background: #fff; outline: none; color: var(--ink); margin-bottom: 12px; }
+  .note-input:focus { border-color: var(--green); }
+  .modal-btns { display: flex; gap: 10px; }
+  .btn-add { flex: 1; background: var(--green); color: #fff; border: none; border-radius: 8px; padding: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 1rem; cursor: pointer; }
+  .btn-cancel { background: var(--cream); color: #666; border: none; border-radius: 8px; padding: 13px 18px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 1rem; cursor: pointer; }
+
+  .history-section { margin-top: 16px; border-top: 1px solid var(--rule); padding-top: 12px; }
+  .history-head { font-family: 'DM Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: #aaa; margin-bottom: 8px; }
+  .history-entry { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--rule); font-size: 0.82rem; }
+  .history-entry:last-child { border-bottom: none; }
+  .history-date { font-family: 'DM Mono', monospace; color: #888; font-size: 0.72rem; }
+  .history-note { color: #aaa; font-style: italic; margin-left: 8px; }
+  .history-amt { font-family: 'DM Mono', monospace; font-weight: 600; margin-right: 8px; }
+  .del-btn { background: none; border: none; color: #ccc; font-size: 1rem; cursor: pointer; padding: 0 2px; line-height: 1; }
+  .del-btn:active { color: var(--red); }
+
+  .sync-indicator { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: #555; text-align: center; padding: 6px; }
+  .sync-indicator.syncing { color: var(--amber); }
+  .sync-indicator.synced { color: var(--green); }
+  .sync-indicator.error { color: var(--red); }
+
+  .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: var(--paper); gap: 12px; }
+  .loading-screen .title { font-family: 'DM Serif Display', serif; font-size: 1.6rem; }
+  .loading-screen .sub { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const STORAGE_KEY = 'trimarchi_budget_v1';
+const ACCOUNTS_KEY = 'trimarchi_accounts_v1';
+
+const CATEGORIES = [
+  { id: 'groceries',  name: 'Groceries',          emoji: '🛒', budget: 1100 },
+  { id: 'ubereats',   name: 'UberEats / Delivery', emoji: '🛵', budget: 400  },
+  { id: 'fastfood',   name: 'Fast Food',           emoji: '🍔', budget: 200  },
+  { id: 'dining',     name: 'Dining Out',          emoji: '🍽️', budget: 300  },
+  { id: 'subs',       name: 'Subscriptions',       emoji: '💳', budget: 500  },
+  { id: 'clothing',   name: 'Clothing & Shopping', emoji: '👗', budget: 400  },
+  { id: 'kids',       name: 'Kids & Activities',   emoji: '👧', budget: 300  },
+  { id: 'fuel',       name: 'Fuel',                emoji: '⛽', budget: 330  },
+  { id: 'gifts',      name: 'Gifts & Occasions',   emoji: '🎁', budget: 250  },
+  { id: 'misc',       name: 'Misc / Home',         emoji: '🏠', budget: 410  },
+];
+
+const ACCOUNTS_DEF = [
+  { id: 'everyday', name: 'Everyday',        emoji: '💳', color: 'everyday' },
+  { id: 'bills',    name: 'Bills',           emoji: '📋', color: 'bills'    },
+  { id: 'savings',  name: 'Savings',         emoji: '🏦', color: 'savings'  },
+  { id: 'car',      name: 'Car & Insurance', emoji: '🚗', color: 'car'      },
+];
+
+function fmt(n) {
+  return '$' + Math.abs(n).toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function getMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}_${d.getMonth()}`;
+}
+
+// Storage helpers
+async function cloudGet(key) {
+  try {
+    const result = await window.storage.get(key, true);
+    return result ? JSON.parse(result.value) : null;
+  } catch { return null; }
+}
+
+async function cloudSet(key, value) {
+  try {
+    await window.storage.set(key, JSON.stringify(value), true);
+    return true;
+  } catch { return false; }
+}
+
+// ── MAIN APP ──────────────────────────────────────────
+function App() {
+  const [spending, setSpending] = useState({});
+  const [history, setHistory] = useState({});
+  const [accounts, setAccounts] = useState(() => {
+    const a = {};
+    ACCOUNTS_DEF.forEach(acc => a[acc.id] = 0);
+    return a;
+  });
+  const [loading, setLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState('synced');
+  const [activeCat, setActiveCat] = useState(null);
+  const [activeAcc, setActiveAcc] = useState(null);
+  const [modalAmt, setModalAmt] = useState('');
+  const [modalNote, setModalNote] = useState('');
+  const [accAmt, setAccAmt] = useState('');
+  const amtRef = useRef(null);
+  const accAmtRef = useRef(null);
+  const syncTimer = useRef(null);
+
+  // Load data on mount
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const monthKey = `${STORAGE_KEY}_${getMonthKey()}`;
+      const [budgetData, accountData] = await Promise.all([
+        cloudGet(monthKey),
+        cloudGet(ACCOUNTS_KEY)
+      ]);
+      if (budgetData) {
+        setSpending(budgetData.spending || {});
+        setHistory(budgetData.history || {});
+      }
+      if (accountData) setAccounts(accountData);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  // Debounced save
+  const saveData = useCallback(async (newSpending, newHistory) => {
+    setSyncStatus('syncing');
+    clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(async () => {
+      const monthKey = `${STORAGE_KEY}_${getMonthKey()}`;
+      const ok = await cloudSet(monthKey, { spending: newSpending, history: newHistory });
+      setSyncStatus(ok ? 'synced' : 'error');
+    }, 600);
+  }, []);
+
+  const saveAccounts = useCallback(async (newAccounts) => {
+    await cloudSet(ACCOUNTS_KEY, newAccounts);
+  }, []);
+
+  // Add spend
+  function handleAddSpend() {
+    const amt = parseFloat(modalAmt);
+    if (!amt || amt <= 0 || !activeCat) return;
+    const note = modalNote.trim();
+    const newSpending = { ...spending, [activeCat.id]: (spending[activeCat.id] || 0) + amt };
+    const newHistory = { ...history };
+    if (!newHistory[activeCat.id]) newHistory[activeCat.id] = [];
+    newHistory[activeCat.id] = [{
+      amount: amt, note,
+      date: new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })
+    }, ...newHistory[activeCat.id]];
+    setSpending(newSpending);
+    setHistory(newHistory);
+    saveData(newSpending, newHistory);
+    setModalAmt('');
+    setModalNote('');
+    setActiveCat(null);
+  }
+
+  // Delete entry
+  function deleteEntry(catId, index) {
+    const entries = history[catId] || [];
+    const entry = entries[index];
+    if (!entry) return;
+    const newSpending = { ...spending, [catId]: Math.max(0, (spending[catId] || 0) - entry.amount) };
+    const newEntries = [...entries];
+    newEntries.splice(index, 1);
+    const newHistory = { ...history, [catId]: newEntries };
+    setSpending(newSpending);
+    setHistory(newHistory);
+    saveData(newSpending, newHistory);
+    // Update modal if still open
+    if (activeCat && activeCat.id === catId) {
+      setActiveCat({ ...activeCat });
+    }
+  }
+
+  // Update account
+  function handleSaveAcc() {
+    const amt = parseFloat(accAmt);
+    if (isNaN(amt) || !activeAcc) return;
+    const newAccounts = { ...accounts, [activeAcc.id]: amt };
+    setAccounts(newAccounts);
+    saveAccounts(newAccounts);
+    setActiveAcc(null);
+    setAccAmt('');
+  }
+
+  // Reset month
+  function handleReset() {
+    if (!confirm('Start a new month? This clears all spending for this month.')) return;
+    const empty = {};
+    setSpending(empty);
+    setHistory(empty);
+    saveData(empty, empty);
+  }
+
+  // Focus inputs when modal opens
+  useEffect(() => {
+    if (activeCat) setTimeout(() => amtRef.current?.focus(), 150);
+  }, [activeCat]);
+  useEffect(() => {
+    if (activeAcc) setTimeout(() => accAmtRef.current?.focus(), 150);
+  }, [activeAcc]);
+
+  const now = new Date();
+  const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+  const dateStr = now.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  const totalBudget = CATEGORIES.reduce((s, c) => s + c.budget, 0);
+  const totalSpent = CATEGORIES.reduce((s, c) => s + (spending[c.id] || 0), 0);
+  const remaining = totalBudget - totalSpent;
+
+  if (loading) return (
+    <div className="loading-screen">
+      <div className="title">Family <em style={{fontStyle:'italic',color:'var(--green)'}}>Budget</em></div>
+      <div className="sub">Syncing data...</div>
+    </div>
+  );
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100vh'}}>
+      {/* Header */}
+      <div className="header">
+        <div>
+          <div className="header-title">Family <em>Budget</em> Tracker</div>
+          <div className="header-date">{dateStr}</div>
+        </div>
+        <div className="header-right">
+          <span className="days-pill">{daysLeft} days left</span>
+          <div className={`sync-indicator ${syncStatus}`}>
+            {syncStatus === 'syncing' ? '⟳ saving...' : syncStatus === 'error' ? '✕ offline' : '✓ synced'}
+          </div>
+          <button className="reset-btn" onClick={handleReset}>New Month</button>
+        </div>
+      </div>
+
+      <div className="main">
+        {/* LEFT */}
+        <div className="left-panel">
+          <div className="section-head">Spending — tap a category to log</div>
+          {CATEGORIES.map(cat => {
+            const spent = spending[cat.id] || 0;
+            const pct = Math.min((spent / cat.budget) * 100, 100);
+            const rem = cat.budget - spent;
+            const over = spent > cat.budget;
+            const warn = pct >= 75 && !over;
+            const color = over ? 'var(--red)' : warn ? 'var(--amber)' : 'var(--green)';
+            const statusText = over
+              ? `${fmt(Math.abs(rem))} over budget!`
+              : warn ? `${fmt(rem)} left — getting close`
+              : `${fmt(rem)} remaining`;
+
+            return (
+              <div key={cat.id} className="budget-row" onClick={() => { setActiveCat(cat); setModalAmt(''); setModalNote(''); }}>
+                <div className="row-top">
+                  <div className="row-name">{cat.emoji} {cat.name}</div>
+                  <div style={{textAlign:'right'}}>
+                    <div className="row-spent" style={{color}}>{fmt(spent)}</div>
+                    <div className="row-budget">of {fmt(cat.budget)}</div>
+                  </div>
+                </div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{width:`${pct}%`, background: color}} />
+                </div>
+                <div className="row-status" style={{color}}>{statusText}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* RIGHT */}
+        <div className="right-panel">
+          <div className="right-inner">
+            <div className="section-head">Account Balances — tap to update</div>
+            {ACCOUNTS_DEF.map(acc => (
+              <div key={acc.id} className={`account-card ${acc.color}`} onClick={() => { setActiveAcc(acc); setAccAmt(accounts[acc.id] || ''); }}>
+                <div className="acc-row">
+                  <div><span>{acc.emoji} </span><span className="acc-name">{acc.name}</span></div>
+                  <div>
+                    <div className="acc-balance">{fmt(accounts[acc.id] || 0)}</div>
+                    <div className="acc-label">tap to update</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div className="section-head" style={{marginTop:'14px'}}>This Month</div>
+            <div className="summary-block">
+              <div className="sum-row">
+                <span className="sum-label">Budget</span>
+                <span className="sum-amount" style={{color:'#fff'}}>{fmt(totalBudget)}</span>
+              </div>
+              <div className="sum-row">
+                <span className="sum-label">Spent</span>
+                <span className="sum-amount" style={{color:'#f4a0a0'}}>{fmt(totalSpent)}</span>
+              </div>
+              <div className="sum-row total">
+                <span className="sum-label">Remaining</span>
+                <span className="sum-amount" style={{color: remaining < 0 ? '#f4a0a0' : '#a8d5b5'}}>
+                  {remaining < 0 ? '-' : ''}{fmt(remaining)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Spending Modal */}
+      {activeCat && (
+        <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setActiveCat(null); }}>
+          <div className="modal">
+            <div className="modal-title">{activeCat.emoji} {activeCat.name}</div>
+            <div className="modal-sub">Spent {fmt(spending[activeCat.id] || 0)} of {fmt(activeCat.budget)} budget</div>
+            <div className="input-wrap">
+              <span>$</span>
+              <input ref={amtRef} className="amt-input" type="number" inputMode="decimal" min="0" placeholder="0.00"
+                value={modalAmt} onChange={e => setModalAmt(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddSpend()} />
+            </div>
+            <input className="note-input" type="text" placeholder="Note (optional)"
+              value={modalNote} onChange={e => setModalNote(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddSpend()} />
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={() => setActiveCat(null)}>Cancel</button>
+              <button className="btn-add" onClick={handleAddSpend}>Add</button>
+            </div>
+
+            {/* History */}
+            {(history[activeCat.id] || []).length > 0 && (
+              <div className="history-section">
+                <div className="history-head">This month's entries</div>
+                {(history[activeCat.id] || []).map((h, i) => (
+                  <div key={i} className="history-entry">
+                    <div>
+                      <span className="history-date">{h.date}</span>
+                      {h.note && <span className="history-note">{h.note}</span>}
+                    </div>
+                    <div style={{display:'flex',alignItems:'center'}}>
+                      <span className="history-amt">${h.amount.toFixed(2)}</span>
+                      <button className="del-btn" onClick={() => deleteEntry(activeCat.id, i)}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Account Modal */}
+      {activeAcc && (
+        <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setActiveAcc(null); }}>
+          <div className="modal">
+            <div className="modal-title">{activeAcc.emoji} {activeAcc.name}</div>
+            <div className="modal-sub">Enter current balance from NAB</div>
+            <div className="input-wrap">
+              <span>$</span>
+              <input ref={accAmtRef} className="amt-input" type="number" inputMode="decimal" placeholder="0.00"
+                value={accAmt} onChange={e => setAccAmt(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveAcc()} />
+            </div>
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={() => setActiveAcc(null)}>Cancel</button>
+              <button className="btn-add" onClick={handleSaveAcc}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
